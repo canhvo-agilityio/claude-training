@@ -84,6 +84,7 @@ Runtime data lives in `~/.e2e-buddy/` (override with `E2E_BUDDY_HOME`): `config.
 
 ## Workflow
 
+- `dev` is the only long-lived branch: branch from `origin/dev`, open every MR into `dev`, never target `main`.
 - One issue per branch: `feat/<iid>-<slug>`.
 - Start with `/implement-ticket <iid>`: read the issue and its spec sections, propose a plan, and wait for approval
   before writing code.
