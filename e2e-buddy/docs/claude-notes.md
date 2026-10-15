@@ -68,3 +68,22 @@ Use it to improve `CLAUDE.md` and the `.claude/commands/` prompts.
   `pnpm_config_store_dir`), `/api?x=1` falling through to `index.html`, an atomic-write cleanup test that could not
   fail, a hardcoded Vite proxy port and a duplicated retention default. All fixed; each new test was checked to
   fail against the old code. Follow-ups: `strictTypeChecked` ESLint, per-app globals, spec §2.1 says Node 20.
+
+## #11 (follow-up) — Claude Code hooks for format, lint, typecheck and tests (2026-10-15)
+
+**Worked:**
+
+- A `PostToolUse` hook on Edit/Write runs Prettier and `eslint --fix` on just the edited file, and exits 2 with
+  the remaining errors (e.g. `any`, `child_process` outside process-runner, syntax errors) so Claude fixes them at once.
+- A `Stop` hook runs `pnpm typecheck` and `vitest related <changed .ts/.tsx>`. It is a no-op when no TS changed,
+  and only warns (no block) when `stop_hook_active` is set, so an unfixable error cannot loop.
+- Hooks are picked up in the running session; a Write of a badly formatted file came back formatted.
+
+**Didn't work:**
+
+- The hook was proposed earlier and then forgotten when the conversation moved to the reviewer agent. Track
+  proposed-but-unapproved work explicitly.
+
+**Change to CLAUDE.md / commands?**
+
+- Workflow section now describes the hooks. `.claude/hooks/**` is exempt from the `child_process` ESLint rule.
