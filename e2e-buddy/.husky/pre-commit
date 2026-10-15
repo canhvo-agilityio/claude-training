@@ -1,0 +1,6 @@
+# Git runs hooks from the repo root; the project lives in e2e-buddy/.
+cd e2e-buddy || exit 1
+
+# Prettier, ESLint and tsc typecheck, then the unit tests.
+pnpm lint
+pnpm test

@@ -30,9 +30,10 @@ git log --oneline -5
 1. Read `git diff` (and the contents of untracked files) to understand the changes.
 2. **Do not** add sensitive files (`.env`, credentials, keys, build output/`node_modules`). If you see any, ask the user first.
 3. Add files by name (avoid a blind `git add -A` if there are unexpected files).
-4. Write the commit message in Conventional Commits format, matching the `git log` style:
+4. Write the commit message in the format enforced by commitlint (`commitlint.config.js`). The `<iid>` is the
+   GitLab issue number, usually taken from the branch name `feat/<iid>-<slug>`:
    ```
-   <type>(<scope>): <short summary, present tense>
+   [<iid>] <type>(<optional scope>): <short summary, present tense>
 
    <brief explanation of why, if needed>
    ```

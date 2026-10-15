@@ -17,7 +17,7 @@ Review the current changes for E2E Buddy. This is a **read-only** review: don't 
 
 - `git status` (include untracked files)
 - `git diff main...HEAD` and `git diff` for uncommitted changes
-- `git log main..HEAD --oneline`, and check that each commit message contains `Refs #<iid>`
+- `git log main..HEAD --oneline`, and check that each commit header matches `[<iid>] <type>: <subject>`
 
 ## 3. Check
 

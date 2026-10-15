@@ -10,7 +10,7 @@ Out of scope for Phase 1 (spec §1.3): building APKs, iOS, Detox, parallel devic
 
 | Layer    | Technology                                                                        |
 | -------- | --------------------------------------------------------------------------------- |
-| Language | TypeScript 5 (`strict`), Node.js 20+                                              |
+| Language | TypeScript 6.0 (`strict`), Node.js 22+                                            |
 | Monorepo | pnpm workspaces                                                                   |
 | Server   | Fastify, Zod, `fast-glob`, `yaml`, `fast-xml-parser`                              |
 | Web      | React 18, Vite, Tailwind, TanStack Query, React Router, `@tanstack/react-virtual` |
@@ -46,16 +46,21 @@ The adapters stay as folders in `apps/server/src/`. Do not move them to `package
 
 ## Commands
 
-<!-- TODO(#2): confirm these once the monorepo is bootstrapped. -->
+Node 22+ (`.nvmrc`), pnpm 11. Run everything from `e2e-buddy/`.
 
-| Command        | What it does                                                     |
-| -------------- | ---------------------------------------------------------------- |
-| `pnpm install` | Install dependencies                                             |
-| `pnpm dev`     | Server + Vite dev server (Vite proxies `/api` to the server)     |
-| `pnpm test`    | Vitest across all workspaces (fake binaries, no emulator needed) |
-| `pnpm lint`    | ESLint + Prettier check                                          |
-| `pnpm build`   | Build contracts, server and web                                  |
-| `pnpm start`   | Serve the API and built web app on `http://127.0.0.1:4477`       |
+| Command        | What it does                                                               |
+| -------------- | -------------------------------------------------------------------------- |
+| `pnpm install` | Install dependencies                                                       |
+| `pnpm dev`     | Server (`tsx watch`, :4477) + Vite (:5173, proxies `/api` to the server)   |
+| `pnpm test`    | Vitest across all workspaces (fake binaries, no emulator needed)           |
+| `pnpm lint`    | ESLint + Prettier check + `tsc` typecheck in every workspace               |
+| `pnpm format`  | Prettier write                                                             |
+| `pnpm build`   | Build the web app, then bundle the server (with contracts) via tsup        |
+| `pnpm start`   | Serve the API and built web app on `http://127.0.0.1:4477` (after `build`) |
+
+`packages/contracts` ships TypeScript source (no build step); Vite, tsx and tsup compile it.
+Vite/Vitest run with `--configLoader runner` so `vite.config.ts` can import contracts; keep that flag.
+CI (`../.gitlab-ci.yml`, repo root) runs lint, test and build on Node 22.
 
 Runtime data lives in `~/.e2e-buddy/` (override with `E2E_BUDDY_HOME`): `config.json`, `projects.json`, `runs/<run-id>/`.
 
@@ -86,8 +91,13 @@ Runtime data lives in `~/.e2e-buddy/` (override with `E2E_BUDDY_HOME`): `config.
 - Stay in the issue's scope. Note follow-ups instead of doing them.
 - Add or update tests for new behavior (unit for parsers and rules, integration with fake binaries for runs).
 - Run `pnpm lint` and `pnpm test` before saying a ticket is done, and report the real output.
-- Commit messages follow Conventional Commits and end with `Refs #<iid>`.
-- Run `/review-ticket` before opening an MR (`/create-mr`, target branch `dev`).
+- Commit header: `[<iid>] <type>(<optional scope>): <subject>`, e.g. `[2] feat: add health endpoint`.
+  Types come from Conventional Commits (`feat`, `fix`, `chore`, `docs`, `refactor`, `test`, ...).
+- Husky enforces this: `pre-commit` runs `pnpm lint` (Prettier, ESLint, tsc) and `pnpm test`; `commit-msg` runs
+  commitlint (`commitlint.config.js`). Fix the failure; never bypass with `--no-verify`.
+- Before opening an MR (`/create-mr`, target branch `dev`), run the `code-reviewer` subagent
+  (`.claude/agents/code-reviewer.md`: correctness, design, readability, security, performance, tests) and
+  `/review-ticket` (Hard rules + acceptance criteria). Fix blockers and majors first.
 - Log what worked and what didn't in `docs/claude-notes.md`.
 
 ## Where things go
