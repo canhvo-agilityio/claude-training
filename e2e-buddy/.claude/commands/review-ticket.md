@@ -16,8 +16,8 @@ Review the current changes for E2E Buddy. This is a **read-only** review: don't 
 ## 2. Collect the diff
 
 - `git status` (include untracked files)
-- `git diff main...HEAD` and `git diff` for uncommitted changes
-- `git log main..HEAD --oneline`, and check that each commit header matches `[<iid>] <type>: <subject>`
+- `git fetch origin dev`, then `git diff origin/dev...HEAD` and `git diff` for uncommitted changes
+- `git log origin/dev..HEAD --oneline`, and check that each commit header matches `[<iid>] <type>: <subject>`
 
 ## 3. Check
 

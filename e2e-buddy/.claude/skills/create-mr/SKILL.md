@@ -23,7 +23,7 @@ git log --oneline -5
 ```
 
 - If there are **no changes** and the branch has no unpushed commits → tell the user and stop.
-- If on `main` or `dev` → **do not commit directly**. Create a new branch named `<type>/<short-kebab-case-description>` (e.g. `feat/add-login`, `fix/null-check`), derived from the changes, then `git switch -c <branch>`.
+- If on `dev` (the only long-lived branch) or `main` (unused) → **do not commit directly**. Create a new branch named `<type>/<short-kebab-case-description>` (e.g. `feat/add-login`, `fix/null-check`), derived from the changes, then `git switch -c <branch>`.
 
 ## Step 2 — Commit
 

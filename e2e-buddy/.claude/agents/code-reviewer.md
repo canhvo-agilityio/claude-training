@@ -17,7 +17,7 @@ related <files> --run`). Run all commands from the `e2e-buddy/` directory.
 
 1. If the caller named files, a commit range or a base branch, use that.
 2. Otherwise review everything that differs from the base branch: find it with
-   `git merge-base HEAD origin/dev` (fall back to `origin/main`), then take `git diff <base>...HEAD`, plus
+   `git merge-base HEAD origin/dev` (`dev` is the only long-lived branch; `main` is unused), then take `git diff <base>...HEAD`, plus
    `git diff HEAD` for uncommitted changes and `git status --short` for untracked files (read those in full).
 3. Get the issue number from the branch name (`feat/<iid>-<slug>`). If `glab` is available, `glab issue view <iid>`
    gives the acceptance criteria; read the spec sections it links in `docs/spec.md`.
