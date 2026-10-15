@@ -25,7 +25,8 @@ export default tseslint.config(
     },
   },
   {
-    files: ['apps/server/src/core/process-runner/**'],
+    // process-runner is the app's only spawner; Claude hooks are dev tooling outside the app.
+    files: ['apps/server/src/core/process-runner/**', '.claude/hooks/**'],
     rules: { 'no-restricted-imports': 'off' },
   },
 );
