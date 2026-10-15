@@ -30,6 +30,9 @@ Use it to improve `CLAUDE.md` and the `.claude/commands/` prompts.
   is the project root and Claude Code is launched from there.
 - The issue names the review command `review.md`. We used `review-ticket.md` instead.
 
+- The first commit (3a19c2c) missed `CLAUDE.md` itself, even though both commands point to its Hard rules.
+  It was added in a follow-up commit (2026-10-15).
+
 **Change to CLAUDE.md / commands?**
 - Update the Commands section in `CLAUDE.md` once #2 adds the pnpm scripts.
 - Still to check: in a fresh session, "how do I run the tests?" and "where do shared types go?" should be answered from
