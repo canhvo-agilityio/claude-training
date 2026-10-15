@@ -8,14 +8,14 @@ Out of scope for Phase 1 (spec §1.3): building APKs, iOS, Detox, parallel devic
 
 ## Stack
 
-| Layer | Technology |
-| --- | --- |
-| Language | TypeScript 5 (`strict`), Node.js 20+ |
-| Monorepo | pnpm workspaces |
-| Server | Fastify, Zod, `fast-glob`, `yaml`, `fast-xml-parser` |
-| Web | React 18, Vite, Tailwind, TanStack Query, React Router, `@tanstack/react-virtual` |
-| Testing | Vitest, fake `adb` / `maestro` binaries |
-| External | Maestro CLI, ADB (Android platform-tools), Java |
+| Layer    | Technology                                                                        |
+| -------- | --------------------------------------------------------------------------------- |
+| Language | TypeScript 5 (`strict`), Node.js 20+                                              |
+| Monorepo | pnpm workspaces                                                                   |
+| Server   | Fastify, Zod, `fast-glob`, `yaml`, `fast-xml-parser`                              |
+| Web      | React 18, Vite, Tailwind, TanStack Query, React Router, `@tanstack/react-virtual` |
+| Testing  | Vitest, fake `adb` / `maestro` binaries                                           |
+| External | Maestro CLI, ADB (Android platform-tools), Java                                   |
 
 ## Repo layout
 
@@ -48,14 +48,14 @@ The adapters stay as folders in `apps/server/src/`. Do not move them to `package
 
 <!-- TODO(#2): confirm these once the monorepo is bootstrapped. -->
 
-| Command | What it does |
-| --- | --- |
-| `pnpm install` | Install dependencies |
-| `pnpm dev` | Server + Vite dev server (Vite proxies `/api` to the server) |
-| `pnpm test` | Vitest across all workspaces (fake binaries, no emulator needed) |
-| `pnpm lint` | ESLint + Prettier check |
-| `pnpm build` | Build contracts, server and web |
-| `pnpm start` | Serve the API and built web app on `http://127.0.0.1:4477` |
+| Command        | What it does                                                     |
+| -------------- | ---------------------------------------------------------------- |
+| `pnpm install` | Install dependencies                                             |
+| `pnpm dev`     | Server + Vite dev server (Vite proxies `/api` to the server)     |
+| `pnpm test`    | Vitest across all workspaces (fake binaries, no emulator needed) |
+| `pnpm lint`    | ESLint + Prettier check                                          |
+| `pnpm build`   | Build contracts, server and web                                  |
+| `pnpm start`   | Serve the API and built web app on `http://127.0.0.1:4477`       |
 
 Runtime data lives in `~/.e2e-buddy/` (override with `E2E_BUDDY_HOME`): `config.json`, `projects.json`, `runs/<run-id>/`.
 
@@ -92,11 +92,11 @@ Runtime data lives in `~/.e2e-buddy/` (override with `E2E_BUDDY_HOME`): `config.
 
 ## Where things go
 
-| Thing | Location |
-| --- | --- |
-| Shared types and Zod schemas | `packages/contracts` |
-| Spawning `maestro`, `adb`, `java`, `open` | `apps/server/src/core/process-runner` |
-| Fake `adb` / `maestro` for tests | `test/fixtures/bin/` |
-| Run data, logs, artifacts | `~/.e2e-buddy/runs/<run-id>/` (spec §4) |
-| Maestro flags, output layout, exit codes | `docs/maestro-output.md` (from #1) |
-| Status codes and error codes | spec §3.3 and §9 |
+| Thing                                     | Location                                |
+| ----------------------------------------- | --------------------------------------- |
+| Shared types and Zod schemas              | `packages/contracts`                    |
+| Spawning `maestro`, `adb`, `java`, `open` | `apps/server/src/core/process-runner`   |
+| Fake `adb` / `maestro` for tests          | `test/fixtures/bin/`                    |
+| Run data, logs, artifacts                 | `~/.e2e-buddy/runs/<run-id>/` (spec §4) |
+| Maestro flags, output layout, exit codes  | `docs/maestro-output.md` (from #1)      |
+| Status codes and error codes              | spec §3.3 and §9                        |

@@ -1,0 +1,35 @@
+# E2E Buddy lives in e2e-buddy/; every job runs from there.
+default:
+  image: node:22
+  before_script:
+    - corepack enable
+    - cd e2e-buddy
+    - pnpm install --frozen-lockfile
+  cache:
+    key:
+      files:
+        - e2e-buddy/pnpm-lock.yaml
+    paths:
+      - e2e-buddy/.pnpm-store/
+
+variables:
+  # pnpm 11 reads pnpm_config_*, not npm_config_*.
+  pnpm_config_store_dir: .pnpm-store
+
+stages:
+  - check
+
+lint:
+  stage: check
+  script:
+    - pnpm lint
+
+test:
+  stage: check
+  script:
+    - pnpm test
+
+build:
+  stage: check
+  script:
+    - pnpm build
