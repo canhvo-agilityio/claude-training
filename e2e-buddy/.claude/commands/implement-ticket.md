@@ -44,4 +44,4 @@ Present:
 
 - Report each acceptance criterion as met, not met or needs a manual check.
 - Add an entry to `docs/claude-notes.md` using the template there.
-- Suggest a commit message ending in `Refs #$ARGUMENTS`. Don't commit or push unless asked.
+- Suggest a commit message with the header `[$ARGUMENTS] <type>: <subject>`. Don't commit or push unless asked.

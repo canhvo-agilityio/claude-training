@@ -1,0 +1,5 @@
+# Resolve the message file before leaving the repo root.
+msg_file="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+cd e2e-buddy || exit 1
+
+pnpm exec commitlint --edit "$msg_file"
