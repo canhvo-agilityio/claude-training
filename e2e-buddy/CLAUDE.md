@@ -96,9 +96,11 @@ Runtime data lives in `~/.e2e-buddy/` (override with `E2E_BUDDY_HOME`): `config.
   Types come from Conventional Commits (`feat`, `fix`, `chore`, `docs`, `refactor`, `test`, ...).
 - Husky enforces this: `pre-commit` runs `pnpm lint` (Prettier, ESLint, tsc) and `pnpm test`; `commit-msg` runs
   commitlint (`commitlint.config.js`). Fix the failure; never bypass with `--no-verify`.
-- Claude Code hooks (`.claude/settings.json`, scripts in `.claude/hooks/`) check work as it happens:
-  after every Edit/Write, `format-file.mjs` runs Prettier + `eslint --fix` on that file and reports what is left;
-  before finishing, `check-changes.mjs` runs `pnpm typecheck` and `vitest related` on changed `.ts/.tsx` files.
+- Claude Code hooks (`.claude/settings.json`, scripts in `.claude/hooks/`, tests via `pnpm test`) check work as it
+  happens: before every Bash call, `block-forbidden-commands.mjs` refuses `--no-verify`/`HUSKY=0`, force-push,
+  pushing to `dev`/`main`, `reset --hard`, `clean -f`, `checkout .`, `rm -r` outside the project, npm/yarn
+  installs and MRs not targeting `dev`; after every Edit/Write, `format-file.mjs` runs Prettier + `eslint --fix`
+  on that file and reports what is left; before finishing, `check-changes.mjs` runs `pnpm typecheck` and `vitest related` on changed `.ts/.tsx` files.
   When a hook reports errors, fix them; don't work around the hook.
 - Before opening an MR (`/create-mr`, target branch `dev`), run the `code-reviewer` subagent
   (`.claude/agents/code-reviewer.md`: correctness, design, readability, security, performance, tests) and
