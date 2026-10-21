@@ -1,0 +1,47 @@
+# Claude Code on GitHub: mention @claude in a PR or issue comment, a PR review, or an issue, and Claude answers
+# there. Ask "@claude review this PR" for a review against the project's code-reviewer checklist.
+# Needs the Claude GitHub App on this repo (https://github.com/apps/claude) and the secret CLAUDE_CODE_OAUTH_TOKEN
+# (`claude setup-token`; billed to the Claude Pro/Max plan, not the API).
+# Docs: https://github.com/anthropics/claude-code-action
+name: Claude Code
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened, assigned]
+
+jobs:
+  claude:
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: >-
+            --max-turns 40
+            --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git merge-base:*)"
+            --append-system-prompt "The project lives in e2e-buddy/ (read e2e-buddy/CLAUDE.md first; dev is the
+            base branch). When asked to review a PR, follow e2e-buddy/.claude/agents/code-reviewer.md: diff against
+            the PR base, verify each finding before reporting, use its severities and report format, at most 10
+            findings with path:line. You cannot run pnpm here; say so in Scope."
