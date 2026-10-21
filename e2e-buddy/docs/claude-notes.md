@@ -104,6 +104,13 @@ Use it to improve `CLAUDE.md` and the `.claude/commands/` prompts.
   default branch), `git push origin HEAD` on `dev` slipped through, and `cd .. && rm -rf e2e-buddy` was allowed.
   It also found parser gaps (subshells, heredoc bodies, `export HUSKY=0`, `core.hooksPath`, `bash -lc`). All fixed,
   each with a regression test (94 hook tests); mutating the `HEAD` rule failed 5 of them.
+- `@claude review this PR` on the GitHub mirror (PR #2, claude-code-action, read-only tools) found a different set:
+  a major bypass via `\`-newline line continuations (`git \⏎ push --force`), unchecked `$(…)`/backticks, `cd`
+  inside `( … )` leaking out, `bash -c` resetting an unknown cwd, `git config core.hooksPath`, `push --mirror`, and
+  `#` comments read as commands. Every finding was probed against the code: all real, but one example was wrong
+  (`(cd apps/web/src && ls); rm -rf ../../..` was already blocked), because it could only trace by hand. Neither
+  review caught that importing the hook under `node -e` crashed (`realpathSync(undefined)`). All fixed with
+  regression tests (117 hook tests). The local and CI reviews found disjoint issues, so running both paid off.
 
 **Didn't work:**
 

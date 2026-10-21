@@ -2,6 +2,7 @@
 // PreToolUse hook (Bash): refuse commands that break the CLAUDE.md workflow or destroy work before they run.
 // Exit 2 blocks the call and sends the reason to Claude, so it picks the allowed way instead.
 // This is a guardrail against mistakes, not a sandbox: a determined command (eval, variables, scripts) can get past it.
+// Command substitutions (`$(…)`, backticks) and `bash -c` bodies are checked as commands of their own.
 import { execFileSync } from 'node:child_process';
 import { readFileSync, realpathSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
@@ -9,7 +10,8 @@ import { isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const PROTECTED_BRANCHES = new Set(['dev', 'main']);
-const SEPARATORS = new Set(['&&', '||', ';', '|', '&', '\n', '(', ')']);
+const SEPARATORS = new Set(['&&', '||', ';', '|', '&', '\n']);
+const SUBSHELL = new Set(['(', ')']);
 // Words that run the command after them: skip them (and their options) to reach the real command.
 const WRAPPERS = new Set(['env', 'command', 'sudo', 'nohup', 'time', 'exec', 'timeout', 'nice', 'xargs', 'export']);
 const KEYWORDS = new Set(['{', '}', '!', 'if', 'then', 'else', 'elif', 'fi', 'do', 'done', 'while', 'until']);
@@ -21,7 +23,17 @@ const SHELLS = new Set(['sh', 'bash', 'zsh']);
  * are skipped so their lines are not read as commands.
  */
 export function splitCommands(command) {
+  return tokenize(command).commands;
+}
+
+/**
+ * Tokenize like `splitCommands`, also returning the bodies of command substitutions. `(` and `)` of a subshell
+ * come back as one-word commands so callers can scope `cd` to the subshell.
+ */
+function tokenize(command) {
   const commands = [];
+  const substitutions = [];
+  let subStart = -1; // start of the body of the outermost quoted `$(`
   let words = [];
   let word = '';
   let inWord = false;
@@ -80,10 +92,15 @@ export function splitCommands(command) {
       } else if (quote === '"' && ch === '$' && command[i + 1] === '(') {
         word += '$(';
         i++;
-        depth++;
+        if (depth++ === 0) subStart = i + 1;
+      } else if (quote === '"' && depth === 0 && ch === '`') {
+        const end = closingBacktick(command, i);
+        substitutions.push(command.slice(i + 1, end));
+        word += command.slice(i, end + 1);
+        i = end;
       } else {
         if (quote === '"' && depth > 0 && ch === '(') depth++;
-        else if (quote === '"' && depth > 0 && ch === ')') depth--;
+        else if (quote === '"' && depth > 0 && ch === ')' && --depth === 0) substitutions.push(command.slice(subStart, i));
         word += ch;
       }
       continue;
@@ -91,18 +108,34 @@ export function splitCommands(command) {
     if (ch === "'" || ch === '"') {
       quote = ch;
       inWord = true;
+    } else if (ch === '\\' && command[i + 1] === '\n') {
+      i++; // line continuation: the shell drops both characters
     } else if (ch === '\\') {
       word += command[++i] ?? '';
       inWord = true;
+    } else if (ch === '#' && !inWord) {
+      // A comment runs to the end of the line; the newline itself still ends the command.
+      while (i + 1 < command.length && command[i + 1] !== '\n') i++;
+    } else if (ch === '`') {
+      const end = closingBacktick(command, i);
+      substitutions.push(command.slice(i + 1, end));
+      word += command.slice(i, end + 1);
+      i = end;
+      inWord = true;
     } else if (ch === '$' && command[i + 1] === '(') {
       // Keep a whole unquoted command substitution as part of the current word.
+      const start = i + 2;
       let level = 0;
       for (; i < command.length; i++) {
         word += command[i];
         if (command[i] === '(') level++;
         else if (command[i] === ')' && --level === 0) break;
       }
+      substitutions.push(command.slice(start, i));
       inWord = true;
+    } else if (SUBSHELL.has(ch)) {
+      endCommand();
+      commands.push([ch]);
     } else if (ch === '<' && command[i + 1] === '<') {
       const end = readHeredoc(i);
       if (end === -1) {
@@ -129,7 +162,16 @@ export function splitCommands(command) {
     }
   }
   endCommand();
-  return commands;
+  return { commands, substitutions };
+}
+
+/** Index of the backtick that closes the one at `i` (or the end of the string). */
+function closingBacktick(command, i) {
+  for (let j = i + 1; j < command.length; j++) {
+    if (command[j] === '\\') j++;
+    else if (command[j] === '`') return j;
+  }
+  return command.length;
 }
 
 /** Remove redirections (`> out.log`, `2>&1`) so they are not read as arguments. */
@@ -199,6 +241,10 @@ function checkGit(args, ctx) {
   if (config.some((c) => /^core\.hookspath=/i.test(c))) {
     return 'Overriding core.hooksPath skips the husky hooks (CLAUDE.md Workflow). Fix what the hook reports instead.';
   }
+  const readOnlyConfig = hasFlag(rest, '--get', '--get-all', '--unset', '--list', '-l');
+  if (sub === 'config' && !readOnlyConfig && rest.some((a) => /^core\.hookspath$/i.test(a))) {
+    return 'Setting core.hooksPath skips the husky hooks (CLAUDE.md Workflow). Fix what the hook reports instead.';
+  }
   if ((sub === 'commit' || sub === 'push' || sub === 'merge') && hasFlag(rest, '--no-verify')) {
     return 'Never bypass the husky hooks with --no-verify (CLAUDE.md Workflow). Fix what the hook reports instead.';
   }
@@ -210,6 +256,9 @@ function checkGit(args, ctx) {
     const { positional, pushOptions } = pushArgs(rest);
     if (hasFlag(rest, '--force') || hasShort(rest, 'f') || positional.some((a) => a.startsWith('+'))) {
       return 'Force-pushing is blocked. If you rebased your own feature branch, use --force-with-lease.';
+    }
+    if (hasFlag(rest, '--mirror', '--all', '--branches')) {
+      return 'git push --mirror/--all can overwrite dev and main without naming them. Push one feature branch.';
     }
     if (hasFlag(rest, '--delete') || hasShort(rest, 'd') || positional.some((a) => a.startsWith(':'))) {
       return 'Deleting remote branches from Claude is blocked; do it in GitLab.';
@@ -313,8 +362,19 @@ function nextCwd(cwd, arg) {
 
 /** Return why `command` is forbidden, or null when it may run. */
 export function findViolation(command, ctx) {
+  const { commands, substitutions } = tokenize(command);
+  for (const body of substitutions) {
+    const inner = findViolation(body, ctx);
+    if (inner) return inner;
+  }
   let cwd = ctx.cwd;
-  for (const words of splitCommands(command)) {
+  const subshells = []; // cwd to restore when each `( … )` closes
+  for (const words of commands) {
+    if (words.length === 1 && SUBSHELL.has(words[0])) {
+      if (words[0] === '(') subshells.push(cwd);
+      else if (subshells.length > 0) cwd = subshells.pop();
+      continue;
+    }
     const { env, argv } = unwrap(stripRedirects(words));
     if (env.some((e) => e === 'HUSKY=0')) {
       return 'HUSKY=0 skips the husky hooks (CLAUDE.md Workflow). Fix what the hook reports instead.';
@@ -325,7 +385,7 @@ export function findViolation(command, ctx) {
       continue;
     }
     if (SHELLS.has(cmd) && /^-[a-z]*c$/.test(args[0] ?? '') && typeof args[1] === 'string') {
-      const inner = findViolation(args[1], { ...ctx, cwd: cwd ?? ctx.cwd });
+      const inner = findViolation(args[1], { ...ctx, cwd });
       if (inner) return inner;
       continue;
     }
@@ -348,7 +408,9 @@ function currentBranch(cwd) {
 }
 
 // realpath both sides: launched through a symlinked path, a plain compare is false and the hook would allow everything.
-if (realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
+// argv[1] is unset under `node -e` / a REPL import; only run when this file is the entry point.
+const entry = process.argv[1];
+if (entry && realpathSync(entry) === realpathSync(fileURLToPath(import.meta.url))) {
   const input = JSON.parse(readFileSync(0, 'utf8'));
   const command = input.tool_input?.command;
   if (typeof command !== 'string') process.exit(0);

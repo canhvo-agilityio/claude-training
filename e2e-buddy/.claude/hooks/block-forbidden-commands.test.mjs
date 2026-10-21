@@ -88,6 +88,22 @@ describe('findViolation', () => {
     'git push -u origin feat/11-x -o merge_request.create -o merge_request.target=main',
     'npm --prefix apps/web install lodash',
     'yarn',
+    // from the @claude review on GitHub PR #2
+    'git \\\n  push --force',
+    'git commit -m x \\\n--no-verify',
+    'glab mr \\\n create --target-branch main',
+    'npm \\\n install lodash',
+    'echo $(git push --force)',
+    'x=$(git reset --hard)',
+    'echo `git push --force`',
+    'echo "result: `git push -f`"',
+    'echo "$(git clean -fd)"',
+    '(cd apps/web && ls); rm -rf ../server',
+    'cd "$X" && bash -c "rm -rf build"',
+    'git config core.hooksPath /dev/null',
+    'git config --local core.hookspath .nohooks',
+    'git push --mirror',
+    'git push --all origin',
   ])('blocks %s', (command) => {
     expect(blocked(command)).toEqual(expect.any(String));
   });
@@ -135,6 +151,13 @@ describe('findViolation', () => {
     'npm install -g pnpm@11',
     'yarn --version',
     'cat <<< "git push --force"',
+    'git status # tidy; git push -f',
+    "git commit -m 'literal $(git push --force) in single quotes'",
+    "git commit -m \"$(cat <<'EOF'\n[11] fix: block git push --force inside $(…)\nEOF\n)\"",
+    '(cd apps/web && ls); rm -rf apps/server/dist',
+    'git config --get core.hooksPath',
+    'git config --unset core.hooksPath',
+    'echo "issue #12"',
   ])('allows %s', (command) => {
     expect(blocked(command)).toBeNull();
   });
@@ -171,6 +194,11 @@ describe('hook script', () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+
+  it('can be imported without an entry script (node -e)', () => {
+    const code = `import(${JSON.stringify(script)}).then((m) => console.log(typeof m.findViolation))`;
+    expect(execFileSync('node', ['-e', code], { encoding: 'utf8' }).trim()).toBe('function');
   });
 
   it('exits 0 for an allowed command', () => {
