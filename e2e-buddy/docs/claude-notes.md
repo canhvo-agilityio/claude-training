@@ -87,3 +87,33 @@ Use it to improve `CLAUDE.md` and the `.claude/commands/` prompts.
 **Change to CLAUDE.md / commands?**
 
 - Workflow section now describes the hooks. `.claude/hooks/**` is exempt from the `child_process` ESLint rule.
+
+## #11 (follow-up) — Block forbidden commands with a PreToolUse hook (2026-10-21)
+
+**Worked:**
+
+- A `PreToolUse` hook on Bash (`block-forbidden-commands.mjs`) exits 2 with a reason for commands that break the
+  Workflow rules: `--no-verify`/`HUSKY=0`, force-push (`--force-with-lease` allowed), pushing to `dev`/`main`,
+  `reset --hard`, `clean -f`, `checkout .`, `rm -r` outside the project, npm/yarn installs, MRs not targeting `dev`.
+- The rule logic is exported and unit-tested (Vitest inline project `claude-hooks`, so `pnpm test` and the husky
+  pre-commit run it). Breaking the protected-branch rule on purpose failed 7 tests, so the tests can fail.
+- A headless `claude -p` launched from `e2e-buddy/` proved the hook fires end to end, and found a false positive:
+  `git clean -fn` (dry run) was blocked. Fixed, with a test.
+- The `code-reviewer` subagent found 4 majors that the first 61 tests missed: the hook did nothing when launched
+  through a symlinked path (`argv[1]` not realpath'd), `glab mr create` with no target lands on `main` (the GitLab
+  default branch), `git push origin HEAD` on `dev` slipped through, and `cd .. && rm -rf e2e-buddy` was allowed.
+  It also found parser gaps (subshells, heredoc bodies, `export HUSKY=0`, `core.hooksPath`, `bash -lc`). All fixed,
+  each with a regression test (94 hook tests); mutating the `HEAD` rule failed 5 of them.
+
+**Didn't work:**
+
+- `glab issue list` and the GitLab MCP both returned 403 (token lacks the "Work Item: Read" permission), so no new
+  issue could be opened; the work is filed under #11 like the earlier hooks.
+- Hooks only load from the directory Claude Code was launched in. A session started at the repo root
+  (`claude-training/`) does not see `e2e-buddy/.claude/settings.json`, so nothing was blocked there.
+- `/review-ticket` could not run for the same 403 (it needs the issue).
+- It parses the command string, so it is a guardrail against mistakes, not a sandbox (`eval`, variables and scripts get past it).
+
+**Change to CLAUDE.md / commands?**
+
+- CLAUDE.md Workflow now lists what the hook blocks. Follow-up: give the GitLab token "Work Item" read/write.
